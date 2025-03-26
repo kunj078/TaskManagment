@@ -18,17 +18,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/tasks/:id", async (req: Request, res: Response) => {
     try {
-      const taskId = parseInt(req.params.id);
-      if (isNaN(taskId)) {
-        return res.status(400).json({ message: "Invalid task ID" });
-      }
-
-      const task = await storage.getTask(taskId);
+      const task = await storage.getTask(req.params.id);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
       }
-
       res.json(task);
+
     } catch (error) {
       res.status(500).json({ message: "Error retrieving task" });
     }
@@ -50,13 +45,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/tasks/:id", async (req: Request, res: Response) => {
     try {
-      const taskId = parseInt(req.params.id);
-      if (isNaN(taskId)) {
-        return res.status(400).json({ message: "Invalid task ID" });
-      }
-      
       const taskData = updateTaskSchema.parse(req.body);
-      const updatedTask = await storage.updateTask(taskId, taskData);
+      const updatedTask = await storage.updateTask(req.params.id, taskData);
       
       if (!updatedTask) {
         return res.status(404).json({ message: "Task not found" });
@@ -74,18 +64,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/tasks/:id", async (req: Request, res: Response) => {
     try {
-      const taskId = parseInt(req.params.id);
-      if (isNaN(taskId)) {
-        return res.status(400).json({ message: "Invalid task ID" });
-      }
-      
-      const deleted = await storage.deleteTask(taskId);
-      
+      const id = req.params.id;
+      const deleted = await storage.deleteTask(req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Task not found" });
       }
       
-      res.status(204).send();
+      res.status(204).send(`${id} is deleted`);
     } catch (error) {
       res.status(500).json({ message: "Error deleting task" });
     }

@@ -132,10 +132,12 @@ export class MongoStorage implements IStorage {
   async getTask(id: number): Promise<Task | undefined> {
     try {
       // Handle string or number ID
-      const taskId = typeof id === 'string' ? id : String(id);
-      const task = await TaskModel.findById(taskId).lean();
+      const task = await TaskModel.findById(id).lean();
       return task ? this.documentToTask(task) : undefined;
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'CastError') {
+        return undefined;
+      }
       console.error('Error fetching task:', error);
       return undefined;
     }

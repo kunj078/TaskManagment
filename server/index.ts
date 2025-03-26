@@ -5,7 +5,9 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Set up MongoDB connection
-let mongoUri = process.env.MONGO_URI;
+// let mongoUri = process.env.MONGO_URI;
+let mongoUri = "mongodb://127.0.0.1:27017/TaskManagment";
+let useInMemoryDb = false;
 
 // Function to connect to MongoDB
 async function connectToMongoDB() {
@@ -90,11 +92,8 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  server.listen(
+    port, () => {
     log(`serving on port ${port}`);
   });
 })();

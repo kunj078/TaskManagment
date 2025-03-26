@@ -2,20 +2,35 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Set up MongoDB connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/taskmanager';
+let mongoUri = process.env.MONGO_URI;
 
-// Connect to MongoDB
-mongoose.connect(MONGO_URI)
-  .then(() => {
+// Function to connect to MongoDB
+async function connectToMongoDB() {
+  try {
+    // If no MongoDB URI is provided, use in-memory MongoDB server
+    if (!mongoUri) {
+      log('No MongoDB URI provided, starting in-memory MongoDB server', 'mongodb');
+      const mongod = await MongoMemoryServer.create();
+      mongoUri = mongod.getUri();
+      log(`In-memory MongoDB server started at ${mongoUri}`, 'mongodb');
+    }
+
+    // Connect to MongoDB
+    await mongoose.connect(mongoUri);
     log('Connected to MongoDB successfully', 'mongodb');
-  })
-  .catch((err) => {
+  } catch (err) {
     log(`MongoDB connection error: ${err}`, 'mongodb');
-    // For development, we'll continue even if MongoDB connection fails
+    log('Using in-memory storage as fallback', 'mongodb');
+    // We'll continue even if MongoDB connection fails
     // In production, you might want to exit the process
-  });
+  }
+}
+
+// Initialize MongoDB connection
+connectToMongoDB();
 
 const app = express();
 app.use(express.json());

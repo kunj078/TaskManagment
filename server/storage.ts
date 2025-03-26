@@ -120,13 +120,20 @@ export class MongoStorage implements IStorage {
 
   // Task methods
   async getAllTasks(): Promise<Task[]> {
-    const tasks = await TaskModel.find().lean();
-    return tasks.map(task => this.documentToTask(task));
+    try {
+      const tasks = await TaskModel.find().lean();
+      return tasks.map(task => this.documentToTask(task));
+    } catch (error) {
+      console.error('Error fetching all tasks:', error);
+      return [];
+    }
   }
 
   async getTask(id: number): Promise<Task | undefined> {
     try {
-      const task = await TaskModel.findById(id).lean();
+      // Handle string or number ID
+      const taskId = typeof id === 'string' ? id : String(id);
+      const task = await TaskModel.findById(taskId).lean();
       return task ? this.documentToTask(task) : undefined;
     } catch (error) {
       console.error('Error fetching task:', error);
@@ -135,20 +142,28 @@ export class MongoStorage implements IStorage {
   }
 
   async createTask(insertTask: InsertTask): Promise<Task> {
-    const newTask = new TaskModel({
-      title: insertTask.title,
-      description: insertTask.description || '',
-      completed: insertTask.completed !== undefined ? insertTask.completed : false
-    });
+    try {
+      const newTask = new TaskModel({
+        title: insertTask.title,
+        description: insertTask.description || '',
+        completed: insertTask.completed !== undefined ? insertTask.completed : false
+      });
 
-    const savedTask = await newTask.save();
-    return this.documentToTask(savedTask);
+      const savedTask = await newTask.save();
+      return this.documentToTask(savedTask);
+    } catch (error) {
+      console.error('Error creating task:', error);
+      throw error;
+    }
   }
 
   async updateTask(id: number, updateTask: UpdateTask): Promise<Task | undefined> {
     try {
+      // Handle string or number ID
+      const taskId = typeof id === 'string' ? id : String(id);
+      
       const updatedTask = await TaskModel.findByIdAndUpdate(
-        id,
+        taskId,
         { $set: updateTask },
         { new: true }
       ).lean();
@@ -162,7 +177,10 @@ export class MongoStorage implements IStorage {
 
   async deleteTask(id: number): Promise<boolean> {
     try {
-      const result = await TaskModel.findByIdAndDelete(id);
+      // Handle string or number ID
+      const taskId = typeof id === 'string' ? id : String(id);
+      
+      const result = await TaskModel.findByIdAndDelete(taskId);
       return !!result;
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -173,10 +191,10 @@ export class MongoStorage implements IStorage {
   // Helper method to convert MongoDB document to Task
   private documentToTask(doc: any): Task {
     return {
-      id: doc._id,
+      id: doc._id.toString(), // Convert ObjectId to string
       title: doc.title,
       description: doc.description || '',
-      completed: doc.completed
+      completed: doc.completed || false
     };
   }
 }

@@ -1,6 +1,21 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import mongoose from 'mongoose';
+
+// Set up MongoDB connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/taskmanager';
+
+// Connect to MongoDB
+mongoose.connect(MONGO_URI)
+  .then(() => {
+    log('Connected to MongoDB successfully', 'mongodb');
+  })
+  .catch((err) => {
+    log(`MongoDB connection error: ${err}`, 'mongodb');
+    // For development, we'll continue even if MongoDB connection fails
+    // In production, you might want to exit the process
+  });
 
 const app = express();
 app.use(express.json());
@@ -44,7 +59,7 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
+    console.error(err); // Log the error instead of throwing it
   });
 
   // importantly only setup vite in development and after

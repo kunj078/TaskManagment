@@ -1,5 +1,7 @@
 import { tasks, type Task, type InsertTask, type UpdateTask } from "@shared/schema";
 import { users, type User, type InsertUser } from "@shared/schema";
+import mongoose from 'mongoose';
+import { TaskModel, TaskDocument } from './models/task';
 
 // modify the interface with any CRUD methods
 // you might need
@@ -94,4 +96,90 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// MongoDB Storage Implementation
+export class MongoStorage implements IStorage {
+  constructor() {
+    // MongoDB connection is handled in server/index.ts
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    // Not implemented for MongoDB in this version
+    return undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    // Not implemented for MongoDB in this version
+    return undefined;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    // Not implemented for MongoDB in this version
+    throw new Error("MongoDB user creation not implemented");
+  }
+
+  // Task methods
+  async getAllTasks(): Promise<Task[]> {
+    const tasks = await TaskModel.find().lean();
+    return tasks.map(task => this.documentToTask(task));
+  }
+
+  async getTask(id: number): Promise<Task | undefined> {
+    try {
+      const task = await TaskModel.findById(id).lean();
+      return task ? this.documentToTask(task) : undefined;
+    } catch (error) {
+      console.error('Error fetching task:', error);
+      return undefined;
+    }
+  }
+
+  async createTask(insertTask: InsertTask): Promise<Task> {
+    const newTask = new TaskModel({
+      title: insertTask.title,
+      description: insertTask.description || '',
+      completed: insertTask.completed !== undefined ? insertTask.completed : false
+    });
+
+    const savedTask = await newTask.save();
+    return this.documentToTask(savedTask);
+  }
+
+  async updateTask(id: number, updateTask: UpdateTask): Promise<Task | undefined> {
+    try {
+      const updatedTask = await TaskModel.findByIdAndUpdate(
+        id,
+        { $set: updateTask },
+        { new: true }
+      ).lean();
+
+      return updatedTask ? this.documentToTask(updatedTask) : undefined;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      return undefined;
+    }
+  }
+
+  async deleteTask(id: number): Promise<boolean> {
+    try {
+      const result = await TaskModel.findByIdAndDelete(id);
+      return !!result;
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      return false;
+    }
+  }
+
+  // Helper method to convert MongoDB document to Task
+  private documentToTask(doc: any): Task {
+    return {
+      id: doc._id,
+      title: doc.title,
+      description: doc.description || '',
+      completed: doc.completed
+    };
+  }
+}
+
+// Export MongoDB storage instance
+export const storage = new MongoStorage();
